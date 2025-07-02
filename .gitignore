@@ -1,0 +1,11 @@
+*.pyc
+*.json
+
+models/
+__pycache__/
+*.log
+*.pkl
+*.db
+*.csv
+*.tsv
+*.xlsx

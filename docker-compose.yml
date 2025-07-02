@@ -1,0 +1,10 @@
+services:
+  to_text:
+    build:
+      context: text_recognition
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "9010:8000"
+    volumes:
+      - ./text_recognition/models:/root/.paddlex/official_models
