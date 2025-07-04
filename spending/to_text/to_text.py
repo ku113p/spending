@@ -8,7 +8,7 @@ TO_TEXT_URL = os.environ.get("TO_TEXT_URL", "http://127.0.0.1:9010/text")
 
 
 class ToTextStrategy(enum.Enum):
-    MICROSERVICE = enum.auto
+    MICROSERVICE = enum.auto()
 
     async def to_text(self, photo_filepath: str) -> str:
         method = {
