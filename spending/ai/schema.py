@@ -1,8 +1,7 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
-
-from pydantic import BaseModel
+from typing import Optional, List
+from pydantic import BaseModel, Field
 
 
 class ProductCategoryEnum(str, Enum):
@@ -27,24 +26,46 @@ class ShopCategoryEnum(str, Enum):
 
 
 class Name(BaseModel):
-    raw: Optional[str]    # Raw OCR'd product name (may contain errors)
-    normalized: str  # Cleaned/inferred product name
+    raw: str = Field(
+        description="The original, unprocessed name or label text (e.g., from OCR or source text)."
+    )
+    normalized: Optional[str] = Field(
+        default=None,
+        description="Corrected and cleaned name, if normalization is possible."
+    )
 
 
 class Product(BaseModel):
-    name: Name
-    price_per_unit: float
-    category: ProductCategoryEnum
-    amount: int = 1
+    name: Name = Field(
+        description="Product name as both raw and optionally normalized values."
+    )
+    price: float = Field(
+        description="Price of the product."
+    )
+    category: ProductCategoryEnum = Field(
+        description="High-level category assigned to this product."
+    )
 
 
 class Shop(BaseModel):
-    name: Name
-    category: ShopCategoryEnum
+    name: Name = Field(
+        description="Shop name in both raw and normalized form."
+    )
+    category: ShopCategoryEnum = Field(
+        description="Shop classification based on type or domain."
+    )
 
 
 class Receipt(BaseModel):
-    number: str
-    created_at: datetime
-    shop: Shop
-    products: list[Product]
+    number: str = Field(
+        description="Receipt or invoice number, or another unique identifier."
+    )
+    created_at: datetime = Field(
+        description="Datetime of receipt issuance."
+    )
+    shop: Shop = Field(
+        description="Metadata about the shop where the purchase occurred."
+    )
+    products: List[Product] = Field(
+        description="List of purchased products."
+    )
