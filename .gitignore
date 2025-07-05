@@ -1,6 +1,7 @@
 *.pyc
 *.json
 
+.vscode/
 models/
 __pycache__/
 *.log

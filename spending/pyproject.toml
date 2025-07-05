@@ -1,5 +1,6 @@
 [project]
 name = "spending"
+python = "3.13.5"
 version = "0.1.0"
 description = ""
 authors = [
@@ -12,6 +13,8 @@ dependencies = [
     "aiofiles (>=24.1.0,<25.0.0)",
     "pydantic (>=2.11.7,<3.0.0)",
     "pymongo (>=4.13.2,<5.0.0)",
+    "langgraph (>=0.5.1,<0.6.0)",
+    "langchain[openai] (>=0.3.26,<0.4.0)",
 ]
 
 [build-system]
@@ -20,3 +23,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 package-mode = false
+
+[tool.poetry.dependencies]
+python = "3.13.5"

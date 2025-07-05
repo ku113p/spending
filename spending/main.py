@@ -1,6 +1,8 @@
 import asyncio
 
 import db, utils
+from ai import agents, calls, schema
+from config import Config
 from to_text import ToTextStrategy
 
 
@@ -9,7 +11,9 @@ logger = utils.create_logger(__name__)
 
 @utils.async_timing(logger)
 async def extract_text():
-    return await ToTextStrategy.MICROSERVICE.to_text("/home/ku113p/Downloads/photo_2025-07-03_00-41-32.jpg")
+    text = await ToTextStrategy.MICROSERVICE.to_text("/home/ku113p/Downloads/photo_2025-07-03_00-41-32.jpg")
+    logger.info(f"text:\n{text}")
+    return text
 
 
 @utils.async_timing(logger)
@@ -29,9 +33,23 @@ async def test_db():
     logger.info(f"deleted: {delete_result}")
 
 
+@utils.async_timing(logger)
+async def test_agent():
+    response = await calls.ask_agent(
+        agents.receipt_extractor,
+        output_schema=schema.Receipt,
+        question=Config.TestData.RECEIPT
+    )
+
+    logger.info(f"response:\n{response}")
+
+    return response
+
+
 async def main():
-    await extract_text()
-    await test_db()
+    # await extract_text()
+    # await test_db()
+    await test_agent()
 
 
 asyncio.run(main())
