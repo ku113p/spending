@@ -1,7 +1,7 @@
 import asyncio
 
 import db, utils
-from ai import agents, calls, schema
+from graphs.graphs import to_receipt
 from config import Config
 from to_text import ToTextStrategy
 
@@ -35,11 +35,7 @@ async def test_db():
 
 @utils.async_timing(logger)
 async def test_agent():
-    response = await calls.ask_agent(
-        agents.receipt_extractor,
-        output_schema=schema.Receipt,
-        question=Config.TestData.RECEIPT
-    )
+    response = await to_receipt(text=Config.TestData.RECEIPT)
 
     logger.info(f"response:\n{response}")
 

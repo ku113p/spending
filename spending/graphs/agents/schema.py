@@ -36,36 +36,18 @@ class Name(BaseModel):
 
 
 class Product(BaseModel):
-    name: Name = Field(
-        description="Product name as both raw and optionally normalized values."
-    )
-    price: float = Field(
-        description="Price of the product."
-    )
-    category: ProductCategoryEnum = Field(
-        description="High-level category assigned to this product."
-    )
+    name: Name = Field(description="Product name as both raw and optionally normalized values.")
+    price: float = Field(description="Price of the product.")
+    category: ProductCategoryEnum = Field(description="High-level category assigned to this product.")
 
 
 class Shop(BaseModel):
-    name: Name = Field(
-        description="Shop name in both raw and normalized form."
-    )
-    category: ShopCategoryEnum = Field(
-        description="Shop classification based on type or domain."
-    )
+    name: Name = Field(description="Shop name in both raw and normalized form.")
+    category: ShopCategoryEnum = Field(description="Shop classification based on type or domain.")
 
 
 class Receipt(BaseModel):
-    number: str = Field(
-        description="Receipt or invoice number, or another unique identifier."
-    )
-    created_at: datetime = Field(
-        description="Datetime of receipt issuance."
-    )
-    shop: Shop = Field(
-        description="Metadata about the shop where the purchase occurred."
-    )
-    products: List[Product] = Field(
-        description="List of purchased products."
-    )
+    number: str = Field(description="Receipt or invoice number, or another unique identifier.")
+    created_at: datetime = Field(description="Datetime of receipt issuance.")
+    shop: Shop = Field(description="Metadata about the shop where the purchase occurred.")
+    products: List[Product] = Field(description="List of purchased products.")
