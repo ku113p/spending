@@ -7,6 +7,7 @@ class Config:
         DB_NAME = os.environ.get("MONGO_DB_NAME", "mydb")
         COLLECTION_NAME = os.environ.get("MONGO_COLLECTION_NAME", "mycollection")
     class TestData:
+        IMAGE_FP = "/home/ku113p/Downloads/photo_2025-07-03_00-41-32.jpg"
         RECEIPT = """T-ELEVEN
 Philippine Seven Corporation
 Owned & Operated by: Philippine

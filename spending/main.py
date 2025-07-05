@@ -1,8 +1,8 @@
 import asyncio
 
 import db, utils
-from graphs.graphs import to_receipt
 from config import Config
+from graphs.photo_to_receipt import get_graph
 from to_text import ToTextStrategy
 
 
@@ -11,7 +11,7 @@ logger = utils.create_logger(__name__)
 
 @utils.async_timing(logger)
 async def extract_text():
-    text = await ToTextStrategy.MICROSERVICE.to_text("/home/ku113p/Downloads/photo_2025-07-03_00-41-32.jpg")
+    text = await ToTextStrategy.MICROSERVICE.to_text(Config.TestData.IMAGE_FP)
     logger.info(f"text:\n{text}")
     return text
 
@@ -35,7 +35,9 @@ async def test_db():
 
 @utils.async_timing(logger)
 async def test_agent():
-    response = await to_receipt(text=Config.TestData.RECEIPT)
+    graph = get_graph()
+
+    response = await graph.ainvoke({"image_fp": Config.TestData.IMAGE_FP})
 
     logger.info(f"response:\n{response}")
 
