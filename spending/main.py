@@ -1,8 +1,12 @@
 import asyncio
+from typing import Callable
+
+from langchain_core.runnables import Runnable
 
 import db, utils
 from config import Config
-from graphs.photo_to_receipt import get_graph
+from graphs.pipelines.photo_to_receipt import local_ocr, openai_only
+
 from to_text import ToTextStrategy
 
 
@@ -35,19 +39,30 @@ async def test_db():
 
 @utils.async_timing(logger)
 async def test_agent():
-    graph = get_graph()
+    return await test_receipt_graph(local_ocr.create)
 
-    response = await graph.ainvoke({"image_fp": Config.TestData.IMAGE_FP})
 
-    logger.info(f"response:\n{response}")
+async def test_receipt_graph(builder: Callable[[], Runnable]):
+    graph = builder()
 
-    return response
+    receipt = await graph.ainvoke({"image_fp": Config.TestData.IMAGE_FP})
+
+    logger.info(f"receipt:\n{receipt}")
+
+    return receipt
+
+
+@utils.async_timing(logger)
+async def test_img_to_schema():
+    return await test_receipt_graph(openai_only.create)
+
 
 
 async def main():
     # await extract_text()
     # await test_db()
-    await test_agent()
+    # await test_agent()
+    await test_img_to_schema()
 
 
 asyncio.run(main())

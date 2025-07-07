@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -25,29 +25,70 @@ class ShopCategoryEnum(str, Enum):
     OTHER = "Other"
 
 
-class Name(BaseModel):
-    raw: str = Field(
-        description="The original, unprocessed name or label text (e.g., from OCR or source text)."
-    )
-    normalized: Optional[str] = Field(
-        default=None,
-        description="Corrected and cleaned name, if normalization is possible."
-    )
-
-
 class Product(BaseModel):
-    name: Name = Field(description="Product name as both raw and optionally normalized values.")
-    price: float = Field(description="Price of the product.")
-    category: ProductCategoryEnum = Field(description="High-level category assigned to this product.")
+    name: str
+    price: float  # Unit price; no quantity, no total
+
+
+class Tax(BaseModel):
+    vat: Optional[float] = None       # total VAT amount, if present
+    vatable: Optional[float] = None   # total amount subject to VAT
+    exempt: Optional[float] = None    # VAT-exempt amount
+    zero_rated: Optional[float] = None  # Zero-rated sales
+    # Any of these can be None if not available
+
+
+class Payment(BaseModel):
+    method: str            # e.g., "cash", "card", "gcash"
+    paid: float            # amount given
+    change: Optional[float] = None  # change given, if any
 
 
 class Shop(BaseModel):
-    name: Name = Field(description="Shop name in both raw and normalized form.")
-    category: ShopCategoryEnum = Field(description="Shop classification based on type or domain.")
+    name: str              # "7-Eleven", "SM Supermarket", etc.
+    address: Optional[str] = None
 
 
 class Receipt(BaseModel):
-    number: str = Field(description="Receipt or invoice number, or another unique identifier.")
-    created_at: datetime = Field(description="Datetime of receipt issuance.")
-    shop: Shop = Field(description="Metadata about the shop where the purchase occurred.")
-    products: List[Product] = Field(description="List of purchased products.")
+    created_at: datetime
+    shop: Shop
+    staff_name: Optional[str] = None
+    products: list[Product]
+    total: float = Field(description="Total amount before payment")
+    payment: Payment
+    tax: Optional[Tax] = None
+    number: str = Field(description="Invoice or receipt number.")
+
+    def as_normalize_input(self) -> "NormalizeInput":
+        return NormalizeInput(
+            prodcut_names=[p.name for p in self.products],
+            shop=ShopInput(
+                name=self.shop.name,
+                address=self.shop.address,
+            )
+        )
+
+
+class ShopInput(BaseModel):
+    name: str = Field(description="Noisy shop name (e.g., from OCR)")
+    address: Optional[str] = Field(description="Optional shop address to aid in normalization")
+
+
+class NormalizeInput(BaseModel):
+    product_names: list[str] = Field(description="List of noisy product names")
+    shop: ShopInput = Field(description="Shop info including name and optional address")
+
+
+class NormalizedProduct(BaseModel):
+    name: str = Field(description="Normalized product name")
+    category: ProductCategoryEnum = Field(description="Predicted product category")
+
+
+class NormalizedShop(BaseModel):
+    name: str = Field(description="Normalized shop name")
+    category: ShopCategoryEnum = Field(description="Predicted shop category")
+
+
+class NormalizedOutput(BaseModel):
+    products: list[NormalizedProduct] = Field(description="List of normalized products with categories")
+    shop: NormalizedShop = Field(description="Normalized shop with category")

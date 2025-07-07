@@ -4,10 +4,12 @@ import logging
 import time
 from typing import Optional
 
+from config import Config
+
 
 def create_logger(name: str = __name__, level: int = logging.INFO) -> logging.Logger:
     logger = logging.Logger(name)
-    logger.setLevel(level)
+    logger.setLevel(Config.LOG_LEVEL)
 
     if not logger.handlers:
         handler = logging.StreamHandler()

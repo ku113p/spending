@@ -2,6 +2,8 @@ import os
 
 
 class Config:
+    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
     class Mongo:
         URI = os.environ.get("MONGO_URI", "mongodb://root:example@localhost:28017")
         DB_NAME = os.environ.get("MONGO_DB_NAME", "mydb")
