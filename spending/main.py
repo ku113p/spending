@@ -5,6 +5,7 @@ from langchain_core.runnables import Runnable
 
 import db, utils
 from config import Config
+from graphs.pipelines import image_to_normailized_receipt
 from graphs.pipelines.photo_to_receipt import local_ocr, openai_only
 
 from to_text import ToTextStrategy
@@ -57,12 +58,18 @@ async def test_img_to_schema():
     return await test_receipt_graph(openai_only.create)
 
 
+@utils.async_timing(logger)
+async def test_img_to_norm():
+    return await test_receipt_graph(image_to_normailized_receipt.create)
+
+
 
 async def main():
     # await extract_text()
     # await test_db()
     # await test_agent()
-    await test_img_to_schema()
+    # await test_img_to_schema()
+    await test_img_to_norm()
 
 
 asyncio.run(main())

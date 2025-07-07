@@ -59,9 +59,10 @@ class Receipt(BaseModel):
     tax: Optional[Tax] = None
     number: str = Field(description="Invoice or receipt number.")
 
+    @property
     def as_normalize_input(self) -> "NormalizeInput":
         return NormalizeInput(
-            prodcut_names=[p.name for p in self.products],
+            product_names=[p.name for p in self.products],
             shop=ShopInput(
                 name=self.shop.name,
                 address=self.shop.address,
@@ -79,16 +80,77 @@ class NormalizeInput(BaseModel):
     shop: ShopInput = Field(description="Shop info including name and optional address")
 
 
+class NamePair(BaseModel):
+    raw: str = Field(description="Original prodcut name")
+    normalized: str = Field(description="Normalized product name")
+
+
 class NormalizedProduct(BaseModel):
-    name: str = Field(description="Normalized product name")
+    name: NamePair
     category: ProductCategoryEnum = Field(description="Predicted product category")
 
 
 class NormalizedShop(BaseModel):
-    name: str = Field(description="Normalized shop name")
+    name: NamePair
     category: ShopCategoryEnum = Field(description="Predicted shop category")
 
 
 class NormalizedOutput(BaseModel):
     products: list[NormalizedProduct] = Field(description="List of normalized products with categories")
     shop: NormalizedShop = Field(description="Normalized shop with category")
+
+
+class NormalizedReceiptProduct(BaseModel):
+    name: NamePair
+    category: ProductCategoryEnum
+    price: float
+
+
+class NormalizedReceiptShop(BaseModel):
+    name: NamePair
+    category: ShopCategoryEnum
+    address: Optional[str] = None
+
+
+class NormalizedReceipt(BaseModel):
+    created_at: datetime
+    shop: NormalizedReceiptShop
+    staff_name: Optional[str] = None
+    products: list[NormalizedReceiptProduct]
+    total: float
+    payment: Payment
+    tax: Optional[Tax] = None
+    number: str
+
+    @classmethod
+    def from_receipt_and_output(cls, receipt: Receipt, normalized: NormalizedOutput) -> "NormalizedReceipt":
+        norm_products_map: dict[str, NormalizedProduct] = {
+            product.name.raw: product
+            for product in normalized.products
+        }
+        products = []
+        for rec_product in receipt.products:
+            norm_product: NormalizedProduct = norm_products_map[rec_product.name]
+            norm_rec_product: NormalizedReceiptProduct = NormalizedReceiptProduct(
+                name=norm_product.name,
+                category=norm_product.category,
+                price=rec_product.price
+            )
+            products.append(norm_rec_product)
+
+        shop = NormalizedReceiptShop(
+            name=normalized.shop.name,
+            category=normalized.shop.category,
+            address=receipt.shop.address
+        )
+
+        return cls(
+            created_at=receipt.created_at,
+            shop=shop,
+            staff_name=receipt.staff_name,
+            products=products,
+            total=receipt.total,
+            payment=receipt.payment,
+            tax=receipt.tax,
+            number=receipt.number
+        )

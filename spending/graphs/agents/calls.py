@@ -27,12 +27,12 @@ class AgentResponse:
         return Metadata(id=req_id, tokens=tokens)
 
 
-async def ask_agent_question(agent: agents.Agent, output_schema: BaseModel, question: str) -> BaseModel:
-    return await ask_agent(agent, output_schema, [HumanMessage(content=question)])
+async def ask_agent_question(agent: agents.Agent, question: str) -> BaseModel:
+    return await ask_agent(agent, [HumanMessage(content=question)])
 
 
-async def ask_agent(agent: agents.Agent, output_schema: BaseModel, messages: list[BaseMessage]) -> BaseModel:
-    llm = ChatOpenAI(model=agent.model).with_structured_output(output_schema, include_raw=True)
+async def ask_agent(agent: agents.Agent, messages: list[BaseMessage]) -> BaseModel:
+    llm = ChatOpenAI(model=agent.model).with_structured_output(agent.response_format, include_raw=True)
 
     messages = [SystemMessage(content=agent.system_prompt), *messages]
 

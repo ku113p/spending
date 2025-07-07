@@ -1,0 +1,40 @@
+from typing import TypedDict
+
+from langgraph.graph import START, END, StateGraph
+from langchain_core.runnables import Runnable
+
+from graphs.agents import schemas
+from graphs.pipelines import receipt_normalize
+from graphs.pipelines.photo_to_receipt import openai_only
+
+class State(TypedDict):
+    image_fp: str
+    receipt: schemas.Receipt
+    normalized_receipt: schemas.NormalizedReceipt
+
+
+async def node_photo_to_receipt(state: State):
+    subgraph_output = await openai_only.create().ainvoke({"image_fp": state["image_fp"]})
+
+    return {"receipt": subgraph_output['receipt']}
+
+
+async def node_receipt_normalize(state: State):
+    subgraph_output = await receipt_normalize.create().ainvoke({'receipt': state['receipt']})
+
+    return {'normalized_receipt': subgraph_output['normalized_receipt']}
+
+
+def create() -> Runnable:
+    graph_builder = StateGraph(State)
+
+    graph_builder.add_node("node_photo_to_receipt", node_photo_to_receipt)
+    graph_builder.add_node("node_receipt_normalize", node_receipt_normalize)
+
+    graph_builder.add_edge(START, "node_photo_to_receipt")
+    graph_builder.add_edge("node_photo_to_receipt", "node_receipt_normalize")
+    graph_builder.add_edge("node_receipt_normalize", END)
+
+    graph = graph_builder.compile()
+
+    return graph

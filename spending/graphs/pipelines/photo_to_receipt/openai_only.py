@@ -2,25 +2,23 @@ import base64
 from typing import TypedDict
 
 from langgraph.graph import START, END, StateGraph
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
-from graphs.agents import agents, calls, schema
+from graphs.agents import agents, calls, schemas
 from graphs.pipelines.utils import one_graph_decorator
 
 
 class State(TypedDict):
     image_fp: str
-    receipt: schema.Receipt
-    normalized: schema.NormalizedOutput
+    receipt: schemas.Receipt
 
 
-async def image_to_receipt(state: State) -> calls.AgentResponse:
+async def image_to_receipt(state: State):
     with open(state["image_fp"], "rb") as img:
         img = base64.b64encode(img.read()).decode()
 
     messages = [
-        SystemMessage(content=agents.receipt_extractor.system_prompt),
         HumanMessage(content=[
             {"type": "text", "text": "Describe the image below."},
             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img}"}},
@@ -29,7 +27,6 @@ async def image_to_receipt(state: State) -> calls.AgentResponse:
 
     parsed = await calls.ask_agent(
         agent=agents.receipt_extractor,
-        output_schema=schema.Receipt,
         messages=messages,
     )
 

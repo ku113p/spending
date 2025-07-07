@@ -3,7 +3,7 @@ from typing import TypedDict
 from langgraph.graph import START, END, StateGraph
 from langchain_core.runnables import Runnable
 
-from graphs.agents import agents, calls, schema
+from graphs.agents import agents, calls, schemas
 from graphs.pipelines.utils import one_graph_decorator
 from to_text.to_text import ToTextStrategy
 
@@ -11,7 +11,7 @@ from to_text.to_text import ToTextStrategy
 class State(TypedDict):
     image_fp: str
     image_text: str
-    receipt: schema.Receipt
+    receipt: schemas.Receipt
 
 
 async def image_to_text(state: State):
@@ -19,10 +19,9 @@ async def image_to_text(state: State):
     return {"image_text": text}
 
 
-async def text_to_receipt(state: State) -> calls.AgentResponse:
+async def text_to_receipt(state: State):
     parsed = await calls.ask_agent_question(
         agents.receipt_extractor,
-        output_schema=schema.Receipt,
         question=state["image_text"]
     )
 
