@@ -13,23 +13,11 @@ class State(TypedDict):
     normalized_receipt: schemas.NormalizedReceipt
 
 
-async def node_photo_to_receipt(state: State):
-    subgraph_output = await openai_only.create().ainvoke({"image_fp": state["image_fp"]})
-
-    return {"receipt": subgraph_output['receipt']}
-
-
-async def node_receipt_normalize(state: State):
-    subgraph_output = await receipt_normalize.create().ainvoke({'receipt': state['receipt']})
-
-    return {'normalized_receipt': subgraph_output['normalized_receipt']}
-
-
 def create() -> Runnable:
     graph_builder = StateGraph(State)
 
-    graph_builder.add_node("node_photo_to_receipt", node_photo_to_receipt)
-    graph_builder.add_node("node_receipt_normalize", node_receipt_normalize)
+    graph_builder.add_node("node_photo_to_receipt", openai_only.create())
+    graph_builder.add_node("node_receipt_normalize", receipt_normalize.create())
 
     graph_builder.add_edge(START, "node_photo_to_receipt")
     graph_builder.add_edge("node_photo_to_receipt", "node_receipt_normalize")
