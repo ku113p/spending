@@ -4,9 +4,12 @@
 .vscode/
 models/
 __pycache__/
+.ipynb_checkpoints/
 *.log
 *.pkl
 *.db
 *.csv
 *.tsv
 *.xlsx
+
+.env
