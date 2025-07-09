@@ -3,6 +3,7 @@ import os
 
 class Config:
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+    TO_TEXT_URL = os.environ.get("TO_TEXT_URL", "http://127.0.0.1:9010/text")
 
     class Mongo:
         URI = os.environ.get("MONGO_URI", "mongodb://root:example@localhost:28017")

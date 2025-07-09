@@ -4,6 +4,8 @@ import logging
 import time
 from typing import Optional
 
+from langfuse.langchain import CallbackHandler
+
 from config import Config
 
 
@@ -36,3 +38,12 @@ def async_timing(logger: Optional[logging.Logger] = None):
 
         return wrapper
     return decorator
+
+
+def get_langfuse_handler() -> CallbackHandler:
+    cb_handler = CallbackHandler()
+
+    if cb_handler.client.auth_check():
+        return cb_handler
+
+    raise Exception("langfuse dead connection")

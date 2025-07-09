@@ -5,7 +5,7 @@ from langchain_core.runnables import Runnable
 
 from graphs.agents import agents, calls, schemas
 from graphs.pipelines.utils import one_graph_decorator
-from to_text.to_text import ToTextStrategy
+from integrations.to_text import ToTextStrategy
 
 
 class State(TypedDict):

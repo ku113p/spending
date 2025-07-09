@@ -1,10 +1,8 @@
 import enum
-import os
 
 import aiohttp
 
-
-TO_TEXT_URL = os.environ.get("TO_TEXT_URL", "http://127.0.0.1:9010/text")
+from config import Config
 
 
 class ToTextStrategy(enum.Enum):
@@ -22,7 +20,7 @@ async def photo_to_text(photo_filepath: str) -> str:
     async with aiohttp.ClientSession() as session:
         with open(photo_filepath, "rb") as file:
             files = {"file": file}
-            async with session.post(TO_TEXT_URL, data=files) as resp:
+            async with session.post(Config.TO_TEXT_URL, data=files) as resp:
                 if resp.status != 200:
                     raise Exception("failed extract text from photo_to_text")
                 
