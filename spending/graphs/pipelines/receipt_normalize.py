@@ -4,6 +4,7 @@ from langgraph.graph import START, END, StateGraph
 from langchain_core.runnables import Runnable
 
 from graphs.agents import agents, calls, schemas
+from graphs.pipelines.utils import one_graph_decorator
 
 
 class State(TypedDict):
@@ -30,6 +31,7 @@ async def to_normalized_receipt(state: State):
     return {"normalized_receipt": normalized_receipt}
 
 
+@one_graph_decorator
 def create() -> Runnable:
     graph_builder = StateGraph(State)
 

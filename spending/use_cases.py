@@ -1,10 +1,11 @@
 from typing import Callable
+import uuid
 
 from langchain_core.runnables import Runnable
 
 import db, utils
 from config import Config
-from graphs.pipelines import image_to_normailized_receipt
+from graphs.pipelines import image_to_normailized_receipt, nodes
 from graphs.pipelines.photo_to_receipt import local_ocr, openai_only
 
 from integrations.to_text import ToTextStrategy
@@ -49,7 +50,7 @@ async def test_receipt_graph(builder: Callable[[], Runnable]):
         lf_handler = [utils.get_langfuse_handler()]
     except Exception as e:
         lf_handler = []
-        logger.error(f"Failed get_langfuse_handler: {e}")  
+        logger.error(f"Failed get_langfuse_handler: {e}")
 
     receipt = await graph.ainvoke(
         {"image_fp": Config.TestData.IMAGE_FP},
@@ -71,10 +72,53 @@ async def test_img_to_norm():
     return await test_receipt_graph(image_to_normailized_receipt.create)
 
 
+@utils.async_timing(logger)
+async def test_save_and_receive():
+    import asyncio
+    from typing import Any, TypedDict
+    from langgraph.graph import START, END, StateGraph
+
+    class TestState(TypedDict):
+        data: dict
+        inserted_id: Any
+
+        channel_name: str
+        task_id: Any
+        received: bool
+
+    
+    graph_builder = StateGraph(TestState)
+    graph_builder.add_node("save_to_db", nodes.save_to_db)
+    graph_builder.add_node("redis_publish", nodes.redis_publish)
+    graph_builder.add_edge(START, "save_to_db")
+    graph_builder.add_edge("save_to_db", "redis_publish")
+    graph_builder.add_edge("redis_publish", END)
+    graph = graph_builder.compile()
+
+    channel_name = "test_chan"
+    task_id = uuid.uuid4()
+    data = {"id_": task_id, "foo": "bar"}
+    state = {"data": data, "channel_name": channel_name, "task_id": task_id}
+
+    async def callback(data):
+        logger.info(f"cb: {type(data).__name__}({data})")
+
+    subscriber_task = asyncio.create_task(utils.subscribe_to_channel(channel_name, callback))
+    result = await graph.ainvoke(state)
+    logger.info(f"result of ainvoke: {result}")
+
+    await asyncio.sleep(1)
+    subscriber_task.cancel()
+    try:
+        await subscriber_task
+    except asyncio.CancelledError:
+        logger.info("Subscriber task cancelled.")
+
 
 async def check():
     # await extract_text()
     # await test_db()
     # await test_agent()
-    await test_img_to_schema()
+    # await test_img_to_schema()
     # await test_img_to_norm()
+    await test_save_and_receive()

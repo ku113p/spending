@@ -18,13 +18,19 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: example
       ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
       ME_CONFIG_BASICAUTH: false
-
-  to_text:
-    build:
-      context: text_recognition
-      dockerfile: Dockerfile
+  
+  redis:
+    image: redis
     restart: always
     ports:
-      - "9010:8000"
-    volumes:
-      - ./text_recognition/models:/root/.paddlex/official_models
+      - "6479:6379"
+
+  # to_text:
+  #   build:
+  #     context: text_recognition
+  #     dockerfile: Dockerfile
+  #   restart: always
+  #   ports:
+  #     - "9010:8000"
+  #   volumes:
+  #     - ./text_recognition/models:/root/.paddlex/official_models

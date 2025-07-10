@@ -3,9 +3,14 @@ from typing import TypedDict
 from langgraph.graph import START, END, StateGraph
 from langchain_core.runnables import Runnable
 
+import utils
 from graphs.agents import schemas
 from graphs.pipelines import receipt_normalize
 from graphs.pipelines.photo_to_receipt import openai_only
+from graphs.pipelines.utils import one_graph_decorator
+
+logger = utils.create_logger()
+
 
 class State(TypedDict):
     image_fp: str
@@ -13,6 +18,7 @@ class State(TypedDict):
     normalized_receipt: schemas.NormalizedReceipt
 
 
+@one_graph_decorator
 def create() -> Runnable:
     graph_builder = StateGraph(State)
 

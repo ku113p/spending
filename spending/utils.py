@@ -1,10 +1,14 @@
 import asyncio
+from contextlib import asynccontextmanager
 from functools import wraps
 import logging
+import pickle
 import time
-from typing import Optional
+from typing import Any, AsyncGenerator, Awaitable, Callable, Optional
 
+import redis.asyncio as redis
 from langfuse.langchain import CallbackHandler
+from redis.typing import EncodableT
 
 from config import Config
 
@@ -20,6 +24,9 @@ def create_logger(name: str = __name__, level: int = logging.INFO) -> logging.Lo
         logger.addHandler(handler)
 
     return logger
+
+
+logger = create_logger()
 
 
 def async_timing(logger: Optional[logging.Logger] = None):
@@ -47,3 +54,34 @@ def get_langfuse_handler() -> CallbackHandler:
         return cb_handler
 
     raise Exception("langfuse dead connection")
+
+
+async def publish_message(channel_name: str, message: EncodableT) -> int:
+    async with _get_redis_connection() as r:
+        return await r.publish(channel_name, pickle.dumps(message))
+
+
+@asynccontextmanager
+async def _get_redis_connection() -> AsyncGenerator[redis.Redis, None]:
+    async with redis.Redis.from_url(Config.REDIS_URL) as r:
+        yield r
+
+
+async def subscribe_to_channel(channel_name: str, callback: Callable[[Any], Awaitable]):
+    async with _get_redis_connection() as r:
+        pubsub = r.pubsub()
+        await pubsub.subscribe(channel_name)
+
+        try:
+            async for message in pubsub.listen():
+                if message['type'] == 'message':
+                    decoded_message = message['data']
+                    msg = pickle.loads(decoded_message)
+                    await callback(msg)
+        except asyncio.CancelledError:
+            logger.info("Subscriber task cancelled.")
+        except KeyboardInterrupt:
+            logger.info("Subscriber stopped by keyboard interrupt.")
+        finally:
+            await pubsub.unsubscribe(channel_name)
+            logger.info(f"Unsubscribed from channel: '{channel_name}'")

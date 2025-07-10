@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.asynchronous.collection import AsyncCollection
-from typing import AsyncGenerator, AsyncIterable
+from typing import Any, AsyncGenerator, AsyncIterable
 
 import utils
 
@@ -16,7 +16,7 @@ logger = utils.create_logger(__name__)
 
 @asynccontextmanager
 async def _get_client() -> AsyncGenerator[AsyncMongoClient, None]:
-    async with AsyncMongoClient(Config.Mongo.URI) as client:
+    async with AsyncMongoClient(Config.Mongo.URI, uuidRepresentation="standard") as client:
         yield client
 
 
@@ -48,10 +48,10 @@ class CreateParams(BaseModel):
 
 
 @register_operation(db_op=DbOperation(db=DbType.MONGO, operation=OperationType.CREATE), schema_cls=CreateParams)
-async def create_document(params: CreateParams) -> str:
+async def create_document(params: CreateParams) -> Any:
     async with _get_collection() as collection:
         result = await collection.insert_one(params.doc)
-        return str(result.inserted_id)
+        return result.inserted_id
 
 
 class FilterParams(BaseModel):

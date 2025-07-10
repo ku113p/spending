@@ -4,6 +4,7 @@ import os
 class Config:
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
     TO_TEXT_URL = os.environ.get("TO_TEXT_URL", "http://127.0.0.1:9010/text")
+    REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6479/0")
 
     class Mongo:
         URI = os.environ.get("MONGO_URI", "mongodb://root:example@localhost:28017")
