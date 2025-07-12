@@ -10,6 +10,8 @@ class OperationType(enum.Enum):
     CREATE = enum.auto()
     LIST = enum.auto()
     DELETE = enum.auto()
+    GET = enum.auto()
+    UPDATE = enum.auto()
 
 
 class DbType(enum.Enum):

@@ -90,6 +90,7 @@ async def test_save_and_receive():
     graph_builder = StateGraph(TestState)
     graph_builder.add_node("save_to_db", nodes.save_to_db)
     graph_builder.add_node("redis_publish", nodes.redis_publish)
+    
     graph_builder.add_edge(START, "save_to_db")
     graph_builder.add_edge("save_to_db", "redis_publish")
     graph_builder.add_edge("redis_publish", END)

@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Self
 from pydantic import BaseModel, Field
 
 
@@ -28,6 +28,7 @@ class ShopCategoryEnum(str, Enum):
 class Product(BaseModel):
     name: str
     price: float  # Unit price; no quantity, no total
+    quantity: int = Field(defautl=1)
 
 
 class Tax(BaseModel):
@@ -104,6 +105,7 @@ class NormalizedReceiptProduct(BaseModel):
     name: NamePair
     category: ProductCategoryEnum
     price: float
+    quantity: int
 
 
 class NormalizedReceiptShop(BaseModel):
@@ -131,10 +133,11 @@ class NormalizedReceipt(BaseModel):
         products = []
         for rec_product in receipt.products:
             norm_product: NormalizedProduct = norm_products_map[rec_product.name]
-            norm_rec_product: NormalizedReceiptProduct = NormalizedReceiptProduct(
+            norm_rec_product = NormalizedReceiptProduct(
                 name=norm_product.name,
                 category=norm_product.category,
-                price=rec_product.price
+                price=rec_product.price,
+                quantity=rec_product.quantity
             )
             products.append(norm_rec_product)
 
@@ -154,3 +157,23 @@ class NormalizedReceipt(BaseModel):
             tax=receipt.tax,
             number=receipt.number
         )
+
+
+class ReceiptBase(BaseModel):
+    created_at: datetime
+    shop: NormalizedReceiptShop
+    products: list[NormalizedReceiptProduct]
+    total: float
+
+    @staticmethod
+    def from_normalized(norm: NormalizedReceipt) -> Self:
+        return ReceiptBase(
+            created_at=norm.created_at,
+            shop=norm.shop,
+            products=norm.products,
+            total=norm.total,
+        )
+
+
+class IsNeedToChange(BaseModel):
+    need_change: bool
