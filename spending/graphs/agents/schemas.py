@@ -175,5 +175,6 @@ class ReceiptBase(BaseModel):
         )
 
 
-class IsNeedToChange(BaseModel):
+class CorrectReceiptRequest(BaseModel):
     need_change: bool
+    receipt_base: Optional[ReceiptBase]

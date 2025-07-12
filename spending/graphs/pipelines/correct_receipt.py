@@ -24,29 +24,16 @@ class State(TypedDict):
 async def get_from_db(state: State):
     db_object = await db.run_operation(
         db.DbOperation.mongo(op=db.OperationType.GET),
-        {"id_": state['task_id']}
+        {"filter": {"_id": state['task_id']}}
     )
 
-    normalized_receipt = schemas.NormalizedReceipt.model_validate_json(db_object)
+    normalized_receipt = schemas.NormalizedReceipt.model_validate(db_object["receipt"])
     instance = schemas.ReceiptBase.from_normalized(normalized_receipt)
 
     return {"instance": instance}
 
 
 async def ask_need_change(state: State):
-    answer: schemas.IsNeedToChange = await calls.ask_agent_question(
-        agents.is_need_to_change,
-        question=state['user_input']
-    )
-
-    return {"need_change": answer.need_change}
-
-
-async def route(state: State):
-    return state['need_change']
-
-
-async def make_new_receipt(state: State):
     instance_json = state['instance'].model_dump_json()
     question = state['user_input']
 
@@ -54,21 +41,31 @@ async def make_new_receipt(state: State):
         AIMessage(content=instance_json),
         HumanMessage(content=question)
     ]
-    new_instance: schemas.ReceiptBase = await calls.ask_agent(
-        agents.update_receipt,
-        messages=messages,
+
+    answer: schemas.CorrectReceiptRequest = await calls.ask_agent(
+        agents.correct_receipt,
+        messages=messages
     )
 
-    return {"new_instance": new_instance}
+    return {"need_change": answer.need_change, "new_instance": answer.receipt_base}
+
+
+async def route(state: State):
+    return state['need_change']
 
 
 async def db_update_receipt(state: State):
     new_instance = state['new_instance']
-    new_instance["updatedAt"] = datetime.now(timezone.utc)
 
     updated = await db.run_operation(
         db.DbOperation.mongo(op=db.OperationType.UPDATE),
-        {"filter": {"id_": state['task_id']}, "data": new_instance}
+        {"filter": {"_id": state['task_id']}, "update": {"$set": {
+            "receipt.updated_at": datetime.now(timezone.utc),
+            "receipt.created_at": new_instance.created_at,
+            "receipt.shop": new_instance.shop.model_dump(),
+            "receipt.products": list(map(schemas.BaseModel.model_dump, new_instance.products)),
+            "receipt.total": new_instance.total,
+        }}}
     )
 
     return {"updated": updated}
@@ -80,7 +77,6 @@ def create() -> Runnable:
 
     graph_builder.add_node("get_from_db", get_from_db)
     graph_builder.add_node("ask_need_change", ask_need_change)
-    graph_builder.add_node("make_new_receipt", make_new_receipt)
     graph_builder.add_node("db_update_receipt", db_update_receipt)
 
     graph_builder.add_edge(START, "get_from_db")
@@ -89,11 +85,10 @@ def create() -> Runnable:
         "ask_need_change",
         route,
         {
-            True: "make_new_receipt",
+            True: "db_update_receipt",
             False: END,
         }
     )
-    graph_builder.add_edge("make_new_receipt", "db_update_receipt")
     graph_builder.add_edge("db_update_receipt", END)
 
     graph = graph_builder.compile()

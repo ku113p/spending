@@ -84,7 +84,7 @@ async def get_documet(params: FilterParams) -> int:
 
 class UpdateParams(BaseModel):
     filter: dict
-    data: dict
+    update: dict
 
 
 @register_operation(db_op=DbOperation(db=DbType.MONGO, operation=OperationType.UPDATE), schema_cls=UpdateParams)
@@ -92,7 +92,6 @@ async def update_one(params: UpdateParams) -> bool:
     async with _get_collection() as collection:
         result = await collection.update_one(
             filter=params.filter,
-            update=params.data
+            update=params.update
         )
-
         return result.modified_count > 0

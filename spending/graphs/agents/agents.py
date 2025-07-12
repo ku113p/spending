@@ -23,14 +23,8 @@ products_n_shop_normalizer = Agent(
     system_prompt="Normalize and categorize the product names and shop name from noisy or OCR text.",
 )
 
-is_need_to_change = Agent(
+correct_receipt = Agent(
     model="gpt-4.1-mini",
-    response_format=schemas.IsNeedToChange,
-    system_prompt="Determine if user agree or want to change something."
-)
-
-update_receipt = Agent(
-    model="gpt-4.1-mini",
-    response_format=schemas.ReceiptBase,
+    response_format=schemas.CorrectReceiptRequest,
     system_prompt="Update receipt information based on the user's input."
 )

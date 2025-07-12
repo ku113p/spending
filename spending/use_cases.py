@@ -5,7 +5,7 @@ from langchain_core.runnables import Runnable
 
 import db, utils
 from config import Config
-from graphs.pipelines import image_to_normailized_receipt, nodes
+from graphs.pipelines import correct_receipt, image_to_normailized_receipt, nodes
 from graphs.pipelines.photo_to_receipt import local_ocr, openai_only
 
 from integrations.to_text import ToTextStrategy
@@ -116,10 +116,52 @@ async def test_save_and_receive():
         logger.info("Subscriber task cancelled.")
 
 
+async def test_extract_receipt_and_save():
+    from typing import TypedDict
+    from langgraph.graph import START, END, StateGraph
+    from graphs.agents import schemas
+
+    class State(TypedDict):
+        image_fp: str
+        normalized_receipt: schemas.NormalizedReceipt
+        data: dict
+        inserted_id: uuid.UUID
+    
+    async def prep_for_save(state: State):
+        norm_rec = state['normalized_receipt']
+        return {"data": {"_id": uuid.uuid4(), "receipt": norm_rec.model_dump()}}
+
+    norm_rec_subgraph = image_to_normailized_receipt.create()
+    graph_builder = StateGraph(State)
+    graph_builder.add_node("norm_rec_subgraph", norm_rec_subgraph)
+    graph_builder.add_node("prep_for_save", prep_for_save)
+    graph_builder.add_node("save_to_db", nodes.save_to_db)
+    graph_builder.add_edge(START, "norm_rec_subgraph")
+    graph_builder.add_edge("norm_rec_subgraph", "prep_for_save")
+    graph_builder.add_edge("prep_for_save", "save_to_db")
+    graph_builder.add_edge("save_to_db", END)
+    graph = graph_builder.compile()
+
+    result = await graph.ainvoke({"image_fp": Config.TestData.IMAGE_FP})
+    logger.info(f"{result=}")
+
+
+async def test_correct_receipt():
+    task_id = uuid.UUID("4b75c511-52d6-49e0-9224-16a58b7f21bb")
+    # user_input = "Pistachio price was 83"
+    user_input = "Date to 06/14/2025"
+
+    graph = correct_receipt.create()
+    result = await graph.ainvoke({"task_id": task_id, "user_input": user_input})
+    logger.info(f"{result=}")
+
+
 async def check():
     # await extract_text()
     # await test_db()
     # await test_agent()
     # await test_img_to_schema()
     # await test_img_to_norm()
-    await test_save_and_receive()
+    # await test_save_and_receive()
+    # await test_extract_receipt_and_save()
+    await test_correct_receipt()
