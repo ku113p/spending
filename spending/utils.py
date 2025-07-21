@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from functools import wraps
+import hashlib
 import logging
 import pickle
 import time
@@ -85,3 +86,14 @@ async def subscribe_to_channel(channel_name: str, callback: Callable[[Any], Awai
         finally:
             await pubsub.unsubscribe(channel_name)
             logger.info(f"Unsubscribed from channel: '{channel_name}'")
+
+
+def calculate_hash(file_path) -> str:
+   sha256_hash = hashlib.sha256()
+   with open(file_path, "rb") as file:
+       while True:
+           data = file.read(65536)  # Read the file in 64KB chunks.
+           if not data:
+               break
+           sha256_hash.update(data)
+   return sha256_hash.hexdigest()

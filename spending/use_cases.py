@@ -5,7 +5,7 @@ from langchain_core.runnables import Runnable
 
 import db, utils
 from config import Config
-from graphs.pipelines import correct_receipt, image_to_normailized_receipt, nodes
+from graphs.pipelines import correct_receipt, full_pipeline, image_to_normailized_receipt, nodes
 from graphs.pipelines.photo_to_receipt import local_ocr, openai_only
 
 from integrations.to_text import ToTextStrategy
@@ -164,4 +164,5 @@ async def check():
     # await test_img_to_norm()
     # await test_save_and_receive()
     # await test_extract_receipt_and_save()
-    await test_correct_receipt()
+    # await test_correct_receipt()
+    await full_pipeline.example(Config.TestData.IMAGE_FP, Config.REDIS_URL) 

@@ -11,7 +11,7 @@ class Config:
         DB_NAME = os.environ.get("MONGO_DB_NAME", "mydb")
         COLLECTION_NAME = os.environ.get("MONGO_COLLECTION_NAME", "mycollection")
     class TestData:
-        IMAGE_FP = "/home/ku113p/Downloads/photo_2025-07-03_00-41-32.jpg"
+        IMAGE_FP = os.environ.get("TEST_IMAGE_FP", "/home/ku113p/Downloads/photo_2025-07-03_00-41-32.jpg")
         # IMAGE_FP = "/home/ku113p/Pictures/Screenshots/Screenshot from 2025-07-12 21-35-01.png"
         RECEIPT = """T-ELEVEN
 Philippine Seven Corporation

@@ -176,5 +176,5 @@ class ReceiptBase(BaseModel):
 
 
 class CorrectReceiptRequest(BaseModel):
-    need_change: bool
-    receipt_base: Optional[ReceiptBase]
+    need_change: bool = Field(description="Whether the user wants to change the receipt information.")
+    receipt_base: Optional[ReceiptBase] = Field(description="Updated receipt information if the user wants to change it.")
