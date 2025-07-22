@@ -76,7 +76,7 @@ async def delete_documents(params: FilterParams) -> int:
 
 
 @register_operation(db_op=DbOperation(db=DbType.MONGO, operation=OperationType.GET), schema_cls=FilterParams)
-async def get_documet(params: FilterParams) -> int:
+async def get_documet(params: FilterParams) -> dict | None:
     async with _get_collection() as collection:
         result: dict = await collection.find_one(params.filter)
         return result

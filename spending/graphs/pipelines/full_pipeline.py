@@ -1,4 +1,7 @@
-from typing import TypedDict
+import asyncio
+from copy import deepcopy
+import enum
+from typing import Self, TypedDict
 import uuid
 
 from langgraph.graph import START, END, StateGraph
@@ -12,29 +15,114 @@ from graphs.pipelines import correct_receipt, image_to_normailized_receipt, node
 
 logger = utils.create_logger(__name__)
 
+_INTERRUPT_TYPE_KEY: str = "interrupt_type"
+
+
+class InterruptType(enum.Enum):
+    ALREADY_EXISTS = enum.auto()
+    IS_IT_OK = enum.auto()
+    UNKNOWN = enum.auto()
+
+    def get_marked_data(self, data: dict) -> dict:
+        return {
+            _INTERRUPT_TYPE_KEY: self,
+            **deepcopy(data)
+        }
+    
+    @classmethod
+    def from_data(cls, value: dict) -> Self:
+        if not isinstance(value, dict):
+            return InterruptType.UNKNOWN
+        
+        if not (data_value := value.get(_INTERRUPT_TYPE_KEY)):
+            return InterruptType.UNKNOWN
+        
+        try:
+            return cls(data_value)
+        except ValueError:
+            return InterruptType.UNKNOWN
+
+
+class OnExistsChoice(enum.Enum):
+    REWRITE = "rewrite"
+    CORRECT = "correct"
+    FINISH = "finish"
+
 
 class State(TypedDict):
     task_id: uuid.UUID
     image_fp: str
-    normalized_receipt: schemas.NormalizedReceipt
+    file_hash: str
+    exists_strategy: OnExistsChoice
+    normalized_receipt: schemas.NormalizedReceipt | None
     data: dict
     inserted_id: uuid.UUID
     user_input: str
     need_change: bool
 
 
+async def calculate_file_hash(state: State):
+    file_hash = await asyncio.to_thread(lambda: utils.calculate_hash(state['image_fp']))
+    return {'file_hash': file_hash}
+
+
+async def check_already_exists(state: State):
+    file_hash = state['file_hash']
+    db_object = await db.run_operation(
+        db.DbOperation.mongo(op=db.OperationType.GET),
+        {"filter": {"file_hash": file_hash}}
+    )
+
+    if not db_object:
+        return {"normalized_receipt": None}
+
+    task_id = db_object["_id"]
+    receipt = schemas.NormalizedReceipt.model_validate(db_object["receipt"])
+    return {"task_id": task_id, "normalized_receipt": receipt}
+
+
+async def if_exists_route(state: State):
+    receipt = state['normalized_receipt']
+    if receipt is None:
+        return "new_file"
+    
+    return "already_exists"
+
+
+async def ask_what_to_do_with_existing(state: State):
+    receipt = state['normalized_receipt']
+    value = interrupt(InterruptType.ALREADY_EXISTS.get_marked_data({"receipt": receipt}))
+    return {"exists_strategy": OnExistsChoice(value)}
+
+
+async def on_exists_route(state: State):
+    return state['exists_strategy'].value
+
+
+async def delete_before_new(state: State):
+    task_id = state['task_id']
+    deleted_count = await db.run_operation(
+        db.DbOperation.mongo(op=db.OperationType.DELETE),
+        {"filter": {"_id": task_id}}
+    )
+    was_deleted = bool(deleted_count)
+
+    logger.info(f"{was_deleted=} | {task_id=}")
+
+
 async def prep_for_save(state: State):
     task_id = state['task_id']
     norm_rec = state['normalized_receipt']
-    return {"task_id": task_id, "data": {"_id": task_id, "receipt": norm_rec.model_dump()}}
+    file_hash = state['file_hash']
+    return {"task_id": task_id, "data": {"_id": task_id, "file_hash": file_hash, "receipt": norm_rec.model_dump()}}
 
 
 async def ask_user(state: State):
-    value = interrupt({"receipt": state['normalized_receipt']})
+    value = interrupt(InterruptType.IS_IT_OK.get_marked_data({"receipt": state['normalized_receipt']}))
     return {"user_input": value}
 
 
-async def route(state: State):
+async def post_correcting_route(state: State):
     if state['need_change']:
         return "ask_again"  # TODO add recursion limit
     
@@ -54,6 +142,10 @@ async def actualize_receipt(state: State):
 def create(checkpointer: Checkpointer = None, store: BaseStore = None) -> Runnable:
     graph_builder = StateGraph(State)
 
+    graph_builder.add_node("calculate_file_hash", calculate_file_hash)
+    graph_builder.add_node("check_already_exists", check_already_exists)
+    graph_builder.add_node("ask_what_to_do_with_existing", ask_what_to_do_with_existing)
+    graph_builder.add_node("delete_before_new", delete_before_new)
     graph_builder.add_node("recognize_receipt_subgraph", image_to_normailized_receipt.create())
     graph_builder.add_node("prep_for_save", prep_for_save)
     graph_builder.add_node("save_to_db", nodes.save_to_db)
@@ -61,14 +153,33 @@ def create(checkpointer: Checkpointer = None, store: BaseStore = None) -> Runnab
     graph_builder.add_node("agent_correct_subgraph", correct_receipt.create())
     graph_builder.add_node("actualize_receipt", actualize_receipt)
     
-    graph_builder.add_edge(START, "recognize_receipt_subgraph")
+    graph_builder.add_edge(START, "calculate_file_hash")
+    graph_builder.add_edge("calculate_file_hash", "check_already_exists")
+    graph_builder.add_conditional_edges(
+        "check_already_exists",
+        if_exists_route,
+        {
+            "new_file": "recognize_receipt_subgraph",
+            "already_exists": "ask_what_to_do_with_existing",
+        }
+    )
+    graph_builder.add_conditional_edges(
+        "ask_what_to_do_with_existing",
+        on_exists_route,
+        {
+            OnExistsChoice.REWRITE.value: "delete_before_new",
+            OnExistsChoice.CORRECT.value: "ask_user",
+            OnExistsChoice.FINISH.value: END,
+        }
+    )
+    graph_builder.add_edge("delete_before_new", "recognize_receipt_subgraph")
     graph_builder.add_edge("recognize_receipt_subgraph", "prep_for_save")
     graph_builder.add_edge("prep_for_save", "save_to_db")
     graph_builder.add_edge("save_to_db", "ask_user")
     graph_builder.add_edge("ask_user", "agent_correct_subgraph")
     graph_builder.add_conditional_edges(
         "agent_correct_subgraph",
-        route,
+        post_correcting_route,
         {
             "confirmed": END,
             "ask_again": "actualize_receipt",

@@ -7,5 +7,5 @@ poetry run python -m ipykernel install --user --name=spending_env --display-name
 
 #### jupiter lab
 ```
-poetry run jupyter lab
+dotenv run -- poetry run jupyter lab
 ```
