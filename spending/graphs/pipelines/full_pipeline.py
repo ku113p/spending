@@ -1,12 +1,14 @@
 import asyncio
 from copy import deepcopy
+from dataclasses import dataclass, field
 import enum
-from typing import Self, TypedDict
+from functools import wraps
+from typing import Awaitable, Callable, Self, TypedDict
 import uuid
 
 from langgraph.graph import START, END, StateGraph
 from langgraph.store.memory import BaseStore
-from langgraph.types import Checkpointer, Command, interrupt
+from langgraph.types import Checkpointer, Command, Interrupt, interrupt
 from langchain_core.runnables import Runnable
 
 import db, utils
@@ -47,6 +49,10 @@ class OnExistsChoice(enum.Enum):
     REWRITE = "rewrite"
     CORRECT = "correct"
     FINISH = "finish"
+
+    @property
+    def as_command(self) -> Command:
+        return Command(resume=self.value)
 
 
 class State(TypedDict):
@@ -224,3 +230,82 @@ async def example(image_fp: str, redis_url: str) -> dict:
             result = await graph.ainvoke(Command(resume=next(inputs)), config=config)
 
         logger.info(f"[{c=}]final_result:{result}")
+
+
+@dataclass(frozen=True)
+class FullPipelineParams:
+    task_id: uuid.UUID
+    image_fp: str
+    checkpointer: Checkpointer | None = None
+    store: BaseStore | None = None
+
+    @property
+    def config(self) -> dict:
+        return {"configurable": {"thread_id": self.task_id}}
+    
+    @property
+    def state(self) -> State:
+        return State(task_id=self.task_id, image_fp=self.image_fp)
+
+
+@dataclass(frozen=True)
+class InterruptInfo:
+    type: InterruptType
+    receipt: schemas.NormalizedReceipt
+
+    @classmethod
+    def from_interrupt(cls, value: Interrupt) -> Self:
+        return cls(
+            type=InterruptType.from_data(value=value.value),
+            receipt=value.value['receipt']
+        )
+
+
+@dataclass(frozen=True)
+class FullPipelineResponse:
+    state: State
+    interrupt_info: InterruptInfo | None = None
+
+    @classmethod
+    def from_graph_response(cls, value: State) -> Self:
+        interrupt_info: InterruptInfo | None
+
+        try:
+            last_interrupt = value['__interrupt__'][-1]
+            interrupt_info = InterruptInfo.from_interrupt(last_interrupt)
+        except KeyError:
+            interrupt_info = None
+        
+        return cls(state=value, interrupt_info=interrupt_info)
+
+
+def as_full_pipeline_response_decorator(func: Callable[..., Awaitable[State]]):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        real_response = await func(*args, **kwargs)
+        response = FullPipelineResponse.from_graph_response(real_response)
+        return response
+    return wrapper
+
+
+@dataclass
+class FullPipelineController:
+    params: FullPipelineParams
+
+    _graph: Runnable = field(init=False)
+
+    def __post_init__(self):
+        self._graph = create(checkpointer=self.params.checkpointer, store=self.params.store)
+
+    async def start(self) -> FullPipelineResponse:
+        return await self._run_graph(self.params.state)
+    
+    @as_full_pipeline_response_decorator
+    async def _run_graph(self, invoke_input) -> dict:
+        return await self._graph.ainvoke(input=invoke_input, config=self.params.config)
+    
+    async def on_exists_answer(self, continue_choice: OnExistsChoice) -> FullPipelineResponse:
+        return await self._run_graph(continue_choice.as_command)
+    
+    async def on_review(self, user_input: str) -> FullPipelineResponse:
+        return await self._run_graph(Command(resume=user_input))
