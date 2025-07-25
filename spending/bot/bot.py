@@ -60,4 +60,3 @@ async def run_bot(api_token: str):
 
             await application.updater.stop()
             await application.stop()
-            await application.shutdown()
