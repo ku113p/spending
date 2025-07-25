@@ -7,13 +7,14 @@ from typing import Awaitable, Callable, Self, TypedDict
 import uuid
 
 from langgraph.graph import START, END, StateGraph
+from langgraph.checkpoint.memory import BaseCheckpointSaver
 from langgraph.store.memory import BaseStore
-from langgraph.types import Checkpointer, Command, Interrupt, interrupt
+from langgraph.types import Command, Interrupt, interrupt
 from langchain_core.runnables import Runnable
 
 import db, utils
 from graphs.agents import schemas
-from graphs.pipelines import correct_receipt, image_to_normailized_receipt, nodes, utils as pipelines_utils
+from graphs.pipelines import correct_receipt, image_to_normailized_receipt, nodes
 
 logger = utils.create_logger(__name__)
 
@@ -145,7 +146,7 @@ async def actualize_receipt(state: State):
     return {"normalized_receipt": receipt}
 
 
-def create(checkpointer: Checkpointer = None, store: BaseStore = None) -> Runnable:
+def create(checkpointer: BaseCheckpointSaver = None, store: BaseStore = None) -> Runnable:
     graph_builder = StateGraph(State)
 
     graph_builder.add_node("calculate_file_hash", calculate_file_hash)
@@ -236,7 +237,7 @@ async def example(image_fp: str, redis_url: str) -> dict:
 class FullPipelineParams:
     task_id: uuid.UUID
     image_fp: str
-    checkpointer: Checkpointer | None = None
+    checkpointer: BaseCheckpointSaver | None = None
     store: BaseStore | None = None
 
     @property

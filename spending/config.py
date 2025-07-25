@@ -5,11 +5,16 @@ class Config:
     LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
     TO_TEXT_URL = os.environ.get("TO_TEXT_URL", "http://127.0.0.1:9010/text")
     REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6479/0")
+    REDIS_CACHE_CONFIG_TTL = 24 * 60 * 60   # 24 hours
 
     class Mongo:
         URI = os.environ.get("MONGO_URI", "mongodb://root:example@localhost:28017")
         DB_NAME = os.environ.get("MONGO_DB_NAME", "mydb")
         COLLECTION_NAME = os.environ.get("MONGO_COLLECTION_NAME", "mycollection")
+
+    class Telegram:
+        BOT_API_TOKEN = os.environ.get("BOT_API_TOKEN")
+
     class TestData:
         IMAGE_FP = os.environ.get("TEST_IMAGE_FP", "/home/ku113p/Downloads/photo_2025-07-03_00-41-32.jpg")
         # IMAGE_FP = "/home/ku113p/Pictures/Screenshots/Screenshot from 2025-07-12 21-35-01.png"

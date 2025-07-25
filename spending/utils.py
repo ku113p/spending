@@ -1,11 +1,12 @@
 import asyncio
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from functools import wraps
 import hashlib
 import logging
 import pickle
 import time
-from typing import Any, AsyncGenerator, Awaitable, Callable, Optional
+from typing import Any, AsyncGenerator, Awaitable, Callable, Optional, Self
 
 import redis.asyncio as redis
 from langfuse.langchain import CallbackHandler
@@ -14,13 +15,17 @@ from redis.typing import EncodableT
 from config import Config
 
 
-def create_logger(name: str = __name__, level: int = logging.INFO) -> logging.Logger:
+log_level = logging.INFO
+log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+
+def create_logger(name: str = __name__, level: int = log_level) -> logging.Logger:
     logger = logging.Logger(name)
-    logger.setLevel(Config.LOG_LEVEL)
+    logger.setLevel(level)
 
     if not logger.handlers:
         handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(log_format)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
 
@@ -86,6 +91,26 @@ async def subscribe_to_channel(channel_name: str, callback: Callable[[Any], Awai
         finally:
             await pubsub.unsubscribe(channel_name)
             logger.info(f"Unsubscribed from channel: '{channel_name}'")
+
+
+@dataclass
+class RedisCache:
+    conn: redis.Redis
+
+    @classmethod
+    @asynccontextmanager
+    async def create(cls) -> AsyncGenerator[Self, None]:
+        async with redis.Redis.from_url(Config.REDIS_URL) as r:
+            yield RedisCache(conn=r)
+
+    async def get(self, key: str) -> Any:
+        return await self.conn.get(key)
+    
+    async def set(self, key: str, value: EncodableT, ttl: int):
+        return await self.conn.set(key, value, ex=ttl)
+    
+    async def delete(self, key: str):
+        return await self.conn.delete(key)
 
 
 def calculate_hash(file_path) -> str:
