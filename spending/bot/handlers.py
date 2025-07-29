@@ -200,7 +200,7 @@ async def delete_receipt_callback_query(update: Update, context: CustomContext):
 
 def get_base_receipt_text(receipt: ReceiptBase) -> str:
     products_text = "\n".join(
-        f"{p.name.normalized} × {p.quantity} — ${p.price:.2f}" for p in receipt.products
+        f"{p.name.normalized} — ${p.price:.2f}" for p in receipt.products
     )
     shop_name = receipt.shop.name.normalized
     created = receipt.created_at.strftime("%Y-%m-%d %H:%M")

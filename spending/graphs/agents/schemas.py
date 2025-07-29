@@ -28,7 +28,6 @@ class ShopCategoryEnum(str, Enum):
 class Product(BaseModel):
     name: str
     price: float  # Unit price; no quantity, no total
-    quantity: int = Field(defautl=1)
 
 
 class Tax(BaseModel):
@@ -51,7 +50,7 @@ class Shop(BaseModel):
 
 
 class Receipt(BaseModel):
-    created_at: datetime
+    created_at: datetime = Field(description="iso format datetime string")
     shop: Shop
     staff_name: Optional[str] = None
     products: list[Product]
@@ -105,7 +104,6 @@ class NormalizedReceiptProduct(BaseModel):
     name: NamePair
     category: ProductCategoryEnum
     price: float
-    quantity: int
 
 
 class NormalizedReceiptShop(BaseModel):
@@ -115,7 +113,7 @@ class NormalizedReceiptShop(BaseModel):
 
 
 class NormalizedReceipt(BaseModel):
-    created_at: datetime
+    created_at: datetime = Field(description="iso format datetime string")
     shop: NormalizedReceiptShop
     staff_name: Optional[str] = None
     products: list[NormalizedReceiptProduct]
@@ -141,7 +139,6 @@ class NormalizedReceipt(BaseModel):
                 name=norm_product.name,
                 category=norm_product.category,
                 price=rec_product.price,
-                quantity=rec_product.quantity
             )
             products.append(norm_rec_product)
 
@@ -164,7 +161,7 @@ class NormalizedReceipt(BaseModel):
 
 
 class ReceiptBase(BaseModel):
-    created_at: datetime
+    created_at: datetime = Field(description="iso format datetime string")
     shop: NormalizedReceiptShop
     products: list[NormalizedReceiptProduct]
     total: float
