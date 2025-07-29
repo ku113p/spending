@@ -84,7 +84,7 @@ async def check_already_exists(state: State):
         return {"normalized_receipt": None}
 
     task_id = db_object["_id"]
-    receipt = schemas.NormalizedReceipt.model_validate(db_object["receipt"])
+    receipt = schemas.NormalizedReceipt.from_raw_mongo(db_object)
     return {"task_id": task_id, "normalized_receipt": receipt}
 
 
@@ -142,7 +142,7 @@ async def actualize_receipt(state: State):
         {"filter": {"_id": state['task_id']}}
     )
 
-    receipt = schemas.NormalizedReceipt.model_validate(db_object["receipt"])
+    receipt = schemas.NormalizedReceipt.from_raw_mongo(db_object)
     return {"normalized_receipt": receipt}
 
 

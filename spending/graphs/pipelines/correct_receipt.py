@@ -27,7 +27,7 @@ async def get_from_db(state: State):
         {"filter": {"_id": state['task_id']}}
     )
 
-    normalized_receipt = schemas.NormalizedReceipt.model_validate(db_object["receipt"])
+    normalized_receipt = schemas.NormalizedReceipt.from_raw_mongo(db_object)
     instance = schemas.ReceiptBase.from_normalized(normalized_receipt)
 
     return {"instance": instance}

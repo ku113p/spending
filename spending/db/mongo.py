@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from pymongo import AsyncMongoClient
+from pymongo.asynchronous.cursor import AsyncCursor
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.asynchronous.collection import AsyncCollection
 from typing import Any, AsyncGenerator, AsyncIterable
@@ -56,22 +57,44 @@ async def create_document(params: CreateParams) -> Any:
 
 class FilterParams(BaseModel):
     filter: dict
+    limit: int | None = None
+    skip: int | None = None
+    sort: list[tuple[str, int]] | None = None
+
+    def mongo_query(self, collection: AsyncCollection) -> AsyncCursor:
+        query = collection.find(self.filter)
+        if self.limit is not None:
+            query = query.limit(self.limit)
+        if self.skip is not None:
+            query = query.skip(self.skip)
+        if self.sort is not None:
+            query = query.sort(self.sort)
+        return query
 
 
 @register_operation(db_op=DbOperation(db=DbType.MONGO, operation=OperationType.LIST), schema_cls=FilterParams)
 async def list_documents(params: FilterParams) -> AsyncIterable[dict]:
     async def doc_generator():
         async with _get_collection() as collection:
-            async for doc in collection.find(params.filter):
+            async for doc in params.mongo_query(collection):
                 yield doc
 
     return doc_generator()
 
 
+@register_operation(db_op=DbOperation(db=DbType.MONGO, operation=OperationType.COUNT), schema_cls=FilterParams)
+async def count_documents(params: FilterParams) -> int:
+    async with _get_collection() as collection:
+        result = await collection.count_documents(params.filter)
+        return result
+
+
 @register_operation(db_op=DbOperation(db=DbType.MONGO, operation=OperationType.DELETE), schema_cls=FilterParams)
 async def delete_documents(params: FilterParams) -> int:
+    documents_to_delete: list = await list_documents(params)
+    ids = [doc["_id"] async for doc in documents_to_delete]
     async with _get_collection() as collection:
-        result = await collection.delete_many(params.filter)
+        result = await collection.delete_many({'_id': {'$in': ids}})
         return result.deleted_count
 
 

@@ -12,6 +12,7 @@ class OperationType(enum.Enum):
     DELETE = enum.auto()
     GET = enum.auto()
     UPDATE = enum.auto()
+    COUNT = enum.auto()
 
 
 class DbType(enum.Enum):

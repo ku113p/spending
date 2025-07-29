@@ -125,6 +125,10 @@ class NormalizedReceipt(BaseModel):
     number: str
 
     @classmethod
+    def from_raw_mongo(cls, db_object: dict) -> Self:
+        return cls.model_validate(db_object["receipt"])
+
+    @classmethod
     def from_receipt_and_output(cls, receipt: Receipt, normalized: NormalizedOutput) -> "NormalizedReceipt":
         norm_products_map: dict[str, NormalizedProduct] = {
             product.name.raw: product
@@ -165,9 +169,9 @@ class ReceiptBase(BaseModel):
     products: list[NormalizedReceiptProduct]
     total: float
 
-    @staticmethod
-    def from_normalized(norm: NormalizedReceipt) -> Self:
-        return ReceiptBase(
+    @classmethod
+    def from_normalized(cls, norm: NormalizedReceipt) -> Self:
+        return cls(
             created_at=norm.created_at,
             shop=norm.shop,
             products=norm.products,

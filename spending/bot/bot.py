@@ -1,5 +1,5 @@
 import asyncio
-from typing import Type
+import re
 from langgraph.checkpoint.memory import BaseCheckpointSaver, InMemorySaver
 from langgraph.store.memory import BaseStore, InMemoryStore
 from telegram.ext import (
@@ -35,9 +35,13 @@ def _get_application(
     application = Application.builder().token(api_token).context_types(context_types).build()
     
     application.add_handler(CommandHandler("start", handlers.start))
+    application.add_handler(CommandHandler("receipts", handlers.receipts))
     application.add_handler(MessageHandler(filters.Document.IMAGE, handlers.image))
     application.add_handler(MessageHandler(filters.PHOTO, handlers.photo))
-    application.add_handler(CallbackQueryHandler(handlers.callback_query))
+    application.add_handler(CallbackQueryHandler(handlers.already_exists_callback_query, handlers.ON_EXISTS_PATTERN))
+    application.add_handler(CallbackQueryHandler(handlers.receipts_page_callaback_query, handlers.RECEIPTS_PAGE_PATTERN))
+    application.add_handler(CallbackQueryHandler(handlers.view_receipt_callback_query, pattern=handlers.VIEW_RECEIPT_PATTERN))
+    application.add_handler(CallbackQueryHandler(handlers.delete_receipt_callback_query, pattern=handlers.DELETE_RECEIPT_PATTERN))
     application.add_handler(MessageHandler(filters.TEXT, handlers.text))
     
     return application
