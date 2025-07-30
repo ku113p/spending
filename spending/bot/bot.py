@@ -35,6 +35,7 @@ def _get_application(
     application = Application.builder().token(api_token).context_types(context_types).build()
     
     application.add_handler(CommandHandler("start", handlers.start))
+    application.add_handler(CommandHandler("help", handlers.start))
     application.add_handler(CommandHandler("receipts", handlers.receipts))
     application.add_handler(CommandHandler("export", handlers.export))
     application.add_handler(MessageHandler(filters.Document.IMAGE, handlers.image))

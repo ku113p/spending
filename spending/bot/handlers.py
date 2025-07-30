@@ -17,8 +17,45 @@ from graphs.agents.schemas import NormalizedReceipt, ReceiptBase
 from graphs.pipelines.full_pipeline import FullPipelineController, FullPipelineParams, FullPipelineResponse, InterruptType, OnExistsChoice
 
 logger = utils.create_logger(__name__)
+WELCOME_TEXT = """
+*👋 Welcome to the Receipt Bot!*
 
-WELCOME_TEXT = "send invoice image or photo to start processing"
+Here's what I can do:
+
+---
+
+📥 *Upload Receipts*  
+• Send a *photo* or *document image* of a receipt to start processing.  
+• You can reply with *text* to confirm or edit the data after processing.
+
+---
+
+📄 *View Receipts*  
+• Use /receipts to see your saved receipts.  
+• Browse by pages, view details, or delete entries.
+
+---
+
+📤 *Export Data*  
+Use `/export <type> <date>` to export your receipts as CSV.
+
+• `<type>`: `day` or `month`  
+• `<date>`: Format `YYYY-MM-DD`  
+• Example: `/export day 2025-07-30`
+
+---
+
+⚠️ *Duplicate Receipts*  
+If a receipt already exists, you'll be asked:  
+• `Rewrite` – overwrite existing  
+• `Review` – review and edit  
+• `Left` – keep the original
+
+---
+
+Just send a receipt image to begin!
+"""
+
 RECEIPTS_PER_PAGE = 2
 ON_EXISTS_CB_PREFIX = "on_exists"
 ON_EXISTS_PATTERN = re.compile(rf"^{ON_EXISTS_CB_PREFIX}_(.+)")
@@ -31,7 +68,7 @@ DELETE_RECEIPT_PATTERN = re.compile(rf"^{DELETE_RECEIPT_CB_PREFIX}_(\d+)")
 
 
 async def start(update: Update, context: CustomContext):
-    await update.message.reply_text(WELCOME_TEXT)
+    await update.message.reply_text(WELCOME_TEXT, parse_mode="Markdown")
 
 
 async def receipts(update: Update, context: CustomContext):
