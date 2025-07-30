@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class ProductCategoryEnum(str, Enum):
+    BEVERAGE = "Beverage"
     FUN_ALLOWANCE = "Fun Allowance"
     FOOD = "Food"
     SHOPPING = "Shopping"

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import datetime
 import math
 import os
 import pickle
@@ -9,6 +10,7 @@ import uuid
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
 
+import exports
 import db, utils
 from .context import CustomContext
 from graphs.agents.schemas import NormalizedReceipt, ReceiptBase
@@ -354,3 +356,48 @@ async def processing_finished(bot: Bot, chat_id: int | str):
 async def processing_error(bot: Bot, chat_id: int | str, error: Exception):
     text = f"An error occurred during processing: {str(error)}"
     await bot.send_message(chat_id=chat_id, text=text)
+
+
+async def export(update: Update, context: CustomContext):
+    if len(context.args) < 2:
+        await update.message.reply_text("Usage: /export <type> <date> [filepath]")
+        return
+    
+    text = update.message.text
+    text_splitted = text.split()
+    if len(text_splitted) < 3:
+        await update.message.reply_text("Usage: /export <type> <date> [filepath]")
+        return
+    
+    export_type_str, date_str = text_splitted[1].strip(), text_splitted[2].strip()
+    
+    try:
+        dt = datetime.datetime.fromisoformat(date_str)
+    except ValueError:
+        await update.message.reply_text(f"Invalid date format: {date_str}. Use YYYY-MM-DD.")
+        return
+    
+    try:
+        export_type = exports.ExportType(export_type_str.lower())
+    except ValueError:
+        await update.message.reply_text(f"Invalid export type: {export_type_str}. Use 'day' or 'month'.")
+        return
+    
+    with tempfile.NamedTemporaryFile(suffix=".csv") as temp_file:
+        filepath = temp_file.name
+        export_config = exports.ExportConfig(
+            type=export_type,
+            dt=dt,
+            filepath=filepath
+        )
+        rows_num: int | None = await export_config.export()
+        if not rows_num:
+            await update.message.reply_text("No data to export.")
+            return
+        
+        await context.bot.send_document(
+            chat_id=update.message.chat.id,
+            document=open(filepath, 'rb'),
+            filename=f"{export_type.value}_{dt.date().isoformat()}.csv",
+            caption=f"Exported {rows_num} rows for {export_type.value} on {dt.date().isoformat()}"
+        )

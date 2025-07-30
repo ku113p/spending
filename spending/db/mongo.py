@@ -118,3 +118,17 @@ async def update_one(params: UpdateParams) -> bool:
             update=params.update
         )
         return result.modified_count > 0
+
+
+class AggregateParams(BaseModel):
+    pipeline: list[dict[str, Any]]
+
+
+@register_operation(db_op=DbOperation(db=DbType.MONGO, operation=OperationType.AGGREGATE), schema_cls=AggregateParams)
+async def aggregate(params: AggregateParams) -> AsyncIterable[dict]:
+    async def doc_generator():
+        async with _get_collection() as collection:
+            async for doc in await collection.aggregate(params.pipeline):
+                yield doc
+
+    return doc_generator()

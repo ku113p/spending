@@ -36,6 +36,7 @@ def _get_application(
     
     application.add_handler(CommandHandler("start", handlers.start))
     application.add_handler(CommandHandler("receipts", handlers.receipts))
+    application.add_handler(CommandHandler("export", handlers.export))
     application.add_handler(MessageHandler(filters.Document.IMAGE, handlers.image))
     application.add_handler(MessageHandler(filters.PHOTO, handlers.photo))
     application.add_handler(CallbackQueryHandler(handlers.already_exists_callback_query, handlers.ON_EXISTS_PATTERN))

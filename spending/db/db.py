@@ -13,6 +13,7 @@ class OperationType(enum.Enum):
     GET = enum.auto()
     UPDATE = enum.auto()
     COUNT = enum.auto()
+    AGGREGATE = enum.auto()
 
 
 class DbType(enum.Enum):
