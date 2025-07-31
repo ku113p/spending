@@ -33,11 +33,18 @@ Normalize product names and the shop name extracted from OCR-like receipt text.
 Instructions:
 - Convert raw or abbreviated product names into clean, human-readable names.
   Example: "LPTN" → "Lipton", "BRD" → "Bread", "AMZNLK" → "Amazon Milk"
-- Use common sense and known brand references when decoding abbreviations or OCR errors.
-- Only normalize when you're reasonably confident. If uncertain — return the raw name.
-- Categorize each product appropriately. (e.g., "Beverage", "Dairy", "Bakery")
-- Normalize the shop name (e.g., "7 ELEVEN PH" → "7-Eleven")
-- Do not invent data. If a value is unreadable or unknown — return as-is or leave empty.
+- Use known brands and contextual clues to correct OCR mistakes.
+
+Examples:
+- Product: "CHKN RICE MEAL" → "Chicken Rice Meal", Category: Food
+- Product: "COKE 500ML" → "Coca-Cola 500ml", Category: Beverage
+- Product: "LAYS CHS" → "Lay's Cheese Chips", Category: Junk Food
+- Shop: "7 ELEVEN PH" → "7-Eleven", Category: Convenience Store
+- Shop: "HOP INN HOTEL" → "Hop Inn Hotel", Category: Hotel
+
+Notes:
+- Do not invent missing data. Leave values unchanged if unsure.
+- Prefer literal matching and known brands; do not guess unfamiliar terms.
 """
 )
 

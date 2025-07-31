@@ -5,25 +5,28 @@ from pydantic import BaseModel, Field
 
 
 class ProductCategoryEnum(str, Enum):
-    BEVERAGE = "Beverage"
-    FUN_ALLOWANCE = "Fun Allowance"
-    FOOD = "Food"
-    SHOPPING = "Shopping"
-    BILLS = "Bills"
-    GROCERIES = "Groceries"
-    TRANSPORTATION = "Transportation"
-    OTHERS = "Others"
+    BEVERAGE = "Beverage"             # Water, soda, juice, coffee, alcohol
+    FOOD = "Food"                     # Full meals, cooked dishes
+    GROCERIES = "Groceries"           # Raw ingredients, milk, rice, vegetables
+    JUNK_FOOD = "Junk Food"           # Snacks, chips, candy, instant noodles
+    SHOPPING = "Shopping"             # Clothing, electronics, accessories
+    ENTERTAINMENT = "Entertainment"   # Games, movies, streaming
+    TRANSPORTATION = "Transportation" # Fares, gas, tolls
+    ACCOMMODATION = "Accommodation"   # Hotels, inns
+    BILLS = "Bills"                   # Utilities, postpaid, subscriptions
+    OTHER = "Other"                   # Anything that doesn't fit above
 
 
 class ShopCategoryEnum(str, Enum):
-    FOOD_AND_DRINK = "Food & Drink"
-    CLOTHING_AND_ACCESSORIES = "Clothing & Accessories"
-    HEALTH_AND_BEAUTY = "Health & Beauty"
-    HOME_AND_LIVING = "Home & Living"
-    ELECTRONICS = "Electronics"
-    ENTERTAINMENT = "Entertainment"
-    SPORTS_AND_OUTDOORS = "Sports & Outdoors"
-    OTHER = "Other"
+    CONVENIENCE_STORE = "Convenience Store"  # 7-Eleven, Ministop
+    FAST_FOOD = "Fast Food"                  # McDonald's, Jollibee
+    RESTAURANT = "Restaurant"                # Sit-down dining
+    SUPERMARKET = "Supermarket"              # Grocery chains
+    HOTEL = "Hotel"                          # Hop Inn, Airbnb
+    ONLINE_STORE = "Online Store"            # Shopee, Lazada, Amazon
+    SERVICE = "Service"                      # Laundry, salons, barbers
+    ENTERTAINMENT = "Entertainment"          # Cinemas, arcades
+    OTHER = "Other"                          # Fallback
 
 
 class Product(BaseModel):
@@ -51,7 +54,7 @@ class Shop(BaseModel):
 
 
 class Receipt(BaseModel):
-    created_at: datetime = Field(description="iso format datetime string")
+    created_at: datetime = Field(description="iso format datetime string (year can't be before 2025)")
     shop: Shop
     staff_name: Optional[str] = None
     products: list[Product]
