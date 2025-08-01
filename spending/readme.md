@@ -9,3 +9,8 @@ poetry run python -m ipykernel install --user --name=spending_env --display-name
 ```
 dotenv run -- poetry run jupyter lab
 ```
+
+#### bot
+```
+dotenv run -- poetry run python main.py
+```
