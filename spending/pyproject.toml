@@ -21,6 +21,7 @@ dependencies = [
     "langgraph-checkpoint-redis>=0.0.8,<0.0.9",
     "python-telegram-bot>=22.3,<23.0",
     "python-dateutil>=2.9.0.post0,<3.0.0",
+    "traitlets>=5.14.1",
 ]
 
 [project.optional-dependencies]
@@ -28,10 +29,14 @@ dev = [
     "notebook>=7.4.4",
     "ipykernel>=6.29.5",
     "python-dotenv>=1.1.1",
-    "traitlets>=5.14.1",
     "ipython>=8.26.0",
 ]
 
 [tool.setuptools]
 packages = ["bot", "db", "exports", "graphs", "integrations"]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.30.1",
+]
 
