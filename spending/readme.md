@@ -1,16 +1,16 @@
 ### run
 
-#### install carnel
+#### install dependencies
 ```
-poetry run python -m ipykernel install --user --name=spending_env --display-name "Python (Poetry - Spending Project)"
+uv pip install -e .
 ```
 
 #### jupiter lab
 ```
-dotenv run -- poetry run jupyter lab
+uv run jupyter lab
 ```
 
 #### bot
 ```
-dotenv run -- poetry run python main.py
+uv run python main.py
 ```
