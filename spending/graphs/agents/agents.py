@@ -9,7 +9,7 @@ class Agent:
 
 
 receipt_extractor = Agent(
-    model="gpt-4.1-nano",
+    model="gpt-5-nano",
     response_format=schemas.Receipt,
     system_prompt="""
 Extract structured receipt data from noisy OCR-like text.
@@ -25,7 +25,7 @@ Rules:
 
 
 products_n_shop_normalizer = Agent(
-    model="gpt-4.1",
+    model="gpt-5",
     response_format=schemas.NormalizedOutput,
     system_prompt="""
 Normalize product names and the shop name extracted from OCR-like receipt text.
@@ -50,7 +50,7 @@ Notes:
 
 
 correct_receipt = Agent(
-    model="gpt-4.1-mini",
+    model="gpt-5-mini",
     response_format=schemas.CorrectReceiptRequest,
     system_prompt="""
 Update receipt information based strictly on the user's instructions.
